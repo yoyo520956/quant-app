@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import CryptoKit
 
 /// 模型更新: 从 GitHub 公开仓库检查 latest.json → 下载模型 → md5 校验 → 落盘 → 通知页面重载
