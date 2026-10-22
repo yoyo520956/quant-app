@@ -16,20 +16,18 @@ targets:
     sources:
       - Sources
     resources:
-      - path: Resources
-        excludes:
-          - "Info.plist"
+      - Resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.qingyao.quantadvisor
-        INFOPLIST_FILE: Resources/Info.plist
+        INFOPLIST_FILE: Info.plist
         GENERATE_INFOPLIST_FILE: "NO"
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_ALLOWED: "NO"
         TARGETED_DEVICE_FAMILY: "1,2"
     info:
-      path: Resources/Info.plist
+      path: Info.plist
       properties:
         CFBundleDisplayName: 量化顾问
         CFBundleShortVersionString: "1.0.0"
