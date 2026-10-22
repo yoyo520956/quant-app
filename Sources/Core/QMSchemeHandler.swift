@@ -18,7 +18,7 @@ final class QMSchemeHandler: NSObject, WKURLSchemeHandler {
                   let data = try? Data(contentsOf: u) else {
                 task.didFailWithError(URLError(.fileDoesNotExist)); return
             }
-            respond(task, url: url, data: data, mime: "text/html; charset=utf-8")
+            respond(task, url: url, data: Self.withPreloadedModels(data), mime: "text/html; charset=utf-8")
             return
         }
         if let data = ModelStore.shared.data(named: fname) {
@@ -37,6 +37,22 @@ final class QMSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 
     func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {}
+
+    /// 关键: qm:// 下 WKWebView 禁 XHR -> 服务端把模型直接内联进页面, 零请求零时机问题
+    static func withPreloadedModels(_ html: Data) -> Data {
+        guard var s = String(data: html, encoding: .utf8),
+              s.contains("</head>"),
+              let model = ModelStore.shared.data(named: "model.json") else { return html }
+        let mj = String(data: model, encoding: .utf8) ?? "null"
+        var hj = "null"
+        if let hl = ModelStore.shared.data(named: "hl_model.json") {
+            hj = String(data: hl, encoding: .utf8) ?? "null"
+        }
+        let safe: (String) -> String = { $0.replacingOccurrences(of: "</", with: "<\\/") }
+        let inject = "<script>window.__QM_PRELOAD__={model:" + safe(mj) + ",hl:" + safe(hj) + "};</script></head>"
+        s = s.replacingOccurrences(of: "</head>", with: inject, options: [], range: nil)
+        return s.data(using: .utf8) ?? html
+    }
 }
 
 final class ModelStore {
