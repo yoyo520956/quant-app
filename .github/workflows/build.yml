@@ -15,7 +15,8 @@ jobs:
       - name: prepare assets
         run: |
           cd Resources
-          for f in *.gz; do [ -e "$f" ] && gunzip -kf "$f" && rm -f "$f"; done
+          for f in *.gz; do [ -e "$f" ] && rm -f "${f%.gz}" && gunzip -kf "$f" && rm -f "$f"; done
+          ls -la "$PWD"
           ls -la
       - name: install xcodegen
         run: |
