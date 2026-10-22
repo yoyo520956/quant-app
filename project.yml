@@ -7,8 +7,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.0.2"
-    CURRENT_PROJECT_VERSION: "1.0.2(20261023.01)"
+    MARKETING_VERSION: "1.0.3"
+    CURRENT_PROJECT_VERSION: "1.0.3(20261023.01)"
 targets:
   QuantAdvisor:
     type: application
@@ -30,8 +30,8 @@ targets:
       path: Info.plist
       properties:
         CFBundleDisplayName: 量化顾问
-        CFBundleShortVersionString: "1.0.2"
-        CFBundleVersion: "1.0.2(20261023.01)"
+        CFBundleShortVersionString: "1.0.3"
+        CFBundleVersion: "1.0.3(20261023.01)"
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
