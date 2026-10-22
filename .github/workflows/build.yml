@@ -1,0 +1,40 @@
+name: build
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: install xcodegen
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: build ipa
+        run: |
+          set -eo pipefail
+          xcodebuild -project QuantAdvisor.xcodeproj -scheme QuantAdvisor \
+            -configuration Release -archivePath build/Quant.xcarchive \
+            CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=NO archive
+          mkdir -p build/Payload
+          cp -R build/Quant.xcarchive/Products/Applications/QuantAdvisor.app build/Payload/
+          cd build && zip -qry QuantAdvisor-unsigned.ipa Payload
+          ls -la QuantAdvisor-unsigned.ipa
+      - name: verify bundle
+        run: |
+          set -eo pipefail
+          cd build/Payload/QuantAdvisor.app
+          ls -la
+          test -f index.html && echo "index.html OK"
+          test -f model.json && echo "model.json OK"
+          test -f hl_model.json && echo "hl_model.json OK"
+          strings QuantAdvisor 2>/dev/null | grep -a -m1 "量化" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QuantAdvisor-unsigned
+          path: build/QuantAdvisor-unsigned.ipa
