@@ -18,11 +18,18 @@ jobs:
           xcodegen generate
       - name: build ipa
         run: |
-          set -eo pipefail
+          set -o pipefail
           xcodebuild -project QuantAdvisor.xcodeproj -scheme QuantAdvisor \
             -configuration Release -archivePath build/Quant.xcarchive \
             CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_ALLOWED=NO archive 2>&1 | tee build/build.log || { tail -60 build/build.log; exit 1; }
+            CODE_SIGNING_ALLOWED=NO archive > build.log 2>&1
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            echo "=== xcodebuild failed, tail ==="
+            tail -80 build.log
+            exit $RC
+          fi
+          grep -c "ARCHIVE SUCCEEDED" build.log || true
           mkdir -p build/Payload
           cp -R build/Quant.xcarchive/Products/Applications/QuantAdvisor.app build/Payload/
           cd build && zip -qry QuantAdvisor-unsigned.ipa Payload
@@ -35,12 +42,15 @@ jobs:
           test -f index.html && echo "index.html OK"
           test -f model.json && echo "model.json OK"
           test -f hl_model.json && echo "hl_model.json OK"
-          strings QuantAdvisor 2>/dev/null | grep -a -m1 "量化" || true
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" Info.plist
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Info.plist
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" Info.plist
+          strings QuantAdvisor 2>/dev/null | grep -a -m1 "qm://" && echo "scheme OK"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: build-log
-          path: build/build.log
+          path: build.log
       - uses: actions/upload-artifact@v4
         with:
           name: QuantAdvisor-unsigned
