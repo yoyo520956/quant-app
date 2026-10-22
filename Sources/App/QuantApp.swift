@@ -73,6 +73,17 @@ struct WebHostView: UIViewRepresentable {
                         self.web?.evaluateJavaScript("location.reload();")
                     }
                 }
+            case "readFile":
+                // XHR 在自定义 scheme 下可能被 WebKit 拦截 -> 原生读文件兜底(仅白名单)
+                let id = (body["id"] as? String) ?? ""
+                let raw = ((body["path"] as? String) ?? "").split(separator: "?")[0].split(separator: "/").last.map(String.init) ?? ""
+                let allow = ["model.json", "model_v5.json", "hl_model.json", "version.json", "model_v6.json"]
+                guard !id.isEmpty, allow.contains(raw), let d = ModelStore.shared.data(named: raw) else {
+                    if !id.isEmpty { web?.evaluateJavaScript("window.__qmFile && window.__qmFile('\(id)',null);") }
+                    return
+                }
+                let b64 = d.base64EncodedString()
+                web?.evaluateJavaScript("window.__qmFile && window.__qmFile('\(id)','\(b64)');")
             case "getState":
                 let js = "window.onNativeState && window.onNativeState('\(ModelUpdater.shared.status)');"
                 self.web?.evaluateJavaScript(js)
