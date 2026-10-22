@@ -46,34 +46,39 @@ final class ModelUpdater: NSObject, ObservableObject {
         URLSession.shared.dataTask(with: latestURL) { data, _, err in
             guard let data = data, err == nil,
                   let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let urlStr = j["url"] as? String, let url = URL(string: urlStr),
-                  let file = j["file"] as? String else {
+                  let ver = j["version"] as? String else {
                 DispatchQueue.main.async { completion(false, "清单解析失败") }; return
             }
-            URLSession.shared.dataTask(with: url) { mdata, _, merr in
-                DispatchQueue.main.async {
-                    guard let mdata = mdata, merr == nil else {
-                        completion(false, "模型下载失败"); return
-                    }
-                    if let expect = j["md5"] as? String {
-                        let actual = ModelUpdater.md5(mdata)
-                        if expect.lowercased() != actual.lowercased() {
-                            completion(false, "校验失败（md5 不匹配）"); return
-                        }
-                    }
-                    do {
-                        try ModelStore.shared.saveModel(mdata, named: file)
-                        let ver = j["version"] as? String ?? "-"
-                        ModelStore.shared.saveVersion(ver, md5: j["md5"] as? String ?? "")
-                        self.currentVersion = ver
-                        self.updateAvailable = false
-                        self.status = "已更新到模型 v\(ver)"
-                        completion(true, self.status)
-                    } catch {
-                        completion(false, "保存失败: \(error.localizedDescription)")
-                    }
-                }
-            }.resume()
+            var items: [[String: Any]] = []
+            if let arr = j["files"] as? [[String: Any]] { items = arr }
+            else if let u = j["url"] as? String, let f = j["file"] as? String {
+                items = [["name": f, "url": u, "md5": j["md5"] ?? ""]]
+            }
+            self.apply(items, ver: ver, done: completion)
+        }.resume()
+    }
+
+    private func apply(_ items: [[String: Any]], ver: String, done: @escaping (Bool, String) -> Void) {
+        guard let it = items.first else {
+            ModelStore.shared.saveVersion(ver, md5: "")
+            self.currentVersion = ver
+            self.updateAvailable = false
+            DispatchQueue.main.async { done(true, "已更新到模型 v\(ver)") }
+            return
+        }
+        let rest = Array(items.dropFirst())
+        guard let u = it["url"] as? String, let url = URL(string: u) else {
+            done(false, "地址无效"); return
+        }
+        URLSession.shared.dataTask(with: url) { md, _, me in
+            guard let md = md, me == nil else { done(false, "下载失败 \(it["name"] ?? "")"); return }
+            if let expect = it["md5"] as? String, !expect.isEmpty, expect as? String != "" {
+                if ModelUpdater.md5(md) != expect.lowercased() { done(false, "校验失败 \(it["name"] ?? "")"); return }
+            }
+            do {
+                try ModelStore.shared.saveModel(md, named: (it["name"] as? String) ?? "model.json")
+                self.apply(rest, ver: ver, done: done)
+            } catch { done(false, "保存失败: \(error.localizedDescription)") }
         }.resume()
     }
 
