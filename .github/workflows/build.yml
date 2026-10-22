@@ -20,7 +20,7 @@ jobs:
           xcodebuild -project QuantAdvisor.xcodeproj -scheme QuantAdvisor \
             -configuration Release -archivePath build/Quant.xcarchive \
             CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_ALLOWED=NO archive
+            CODE_SIGNING_ALLOWED=NO archive 2>&1 | tee build/build.log || { tail -60 build/build.log; exit 1; }
           mkdir -p build/Payload
           cp -R build/Quant.xcarchive/Products/Applications/QuantAdvisor.app build/Payload/
           cd build && zip -qry QuantAdvisor-unsigned.ipa Payload
@@ -34,6 +34,11 @@ jobs:
           test -f model.json && echo "model.json OK"
           test -f hl_model.json && echo "hl_model.json OK"
           strings QuantAdvisor 2>/dev/null | grep -a -m1 "量化" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build/build.log
       - uses: actions/upload-artifact@v4
         with:
           name: QuantAdvisor-unsigned
