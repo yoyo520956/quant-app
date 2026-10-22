@@ -395,6 +395,16 @@ let MODEL = null, MODEL_HL = null, DATA = [], FILTER = "all", SEARCH = "", SORT 
 let MODEL_DIR_LIST = null, MODEL_HI_LIST = null, MODEL_LO_LIST = null;
 const BASE = (() => { try { return location.href.replace(/\/[^/]*$/, "/"); } catch(e) { return ""; } })();
 async function loadModels() {
+  const P = window.__QM_PRELOAD__;
+  if (P && P.model) {
+    const put = (m, h) => { MODEL = m; MODEL_HL = h;
+      MODEL_DIR_LIST = Array.isArray(m.dir) ? m.dir : [m.dir];
+      if (h) { MODEL_HI_LIST = Array.isArray(h.high) ? h.high : [h.high];
+               MODEL_LO_LIST = Array.isArray(h.low) ? h.low : [h.low]; } };
+    if (P.model.dir) { put(P.model, P.hl || null);
+      const b = document.getElementById("updbtn"); if (b) b.style.display = "none";
+      return; }
+  }
   const tryLoad = async (name) => {
     try { return JSON.parse(await xhrGet(BASE + name, 60000)); }
     catch(e) {
